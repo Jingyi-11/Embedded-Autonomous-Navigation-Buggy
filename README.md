@@ -34,6 +34,7 @@ The hardware design of the buggy focuses on three major components: the mechanic
 
 <img src="images/buggy_design.png" width="300">
 <img src="images/chassis_design.png" width="200">
+<img src="images/chassis_stress_analysis.png" width="300">
 
 The chassis structure was redesigned during the project to improve stability and component placement.
 
