@@ -29,6 +29,7 @@ The project involved the complete workflow of an embedded system, including:
 ### Buggy Design
 
 
+
 The final buggy integrates the microcontroller, motor driver, sensor PCB, and power system into a compact two-level chassis.
 
 ---
