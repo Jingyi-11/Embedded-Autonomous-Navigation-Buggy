@@ -1,9 +1,11 @@
-
 # Autonomous Line-Following Buggy
 
 An embedded systems project that designs and builds an autonomous buggy capable of following a track using optical sensors and motor control algorithms.
 
 This project integrates **mechanical design, electronics, control algorithms, and embedded software** to create a fully functional autonomous vehicle.
+
+<img src="images/front_buggy.png" width="300">
+<img src="images/top_buggy.png" width="300">
 
 ---
 
@@ -24,149 +26,187 @@ The project involved the complete workflow of an embedded system, including:
 
 ---
 
-# Final System
+# Design
 
-### Buggy Design
+The hardware design of the buggy focuses on three major components: the mechanical chassis, motor system, and line detection sensors.
 
+## Chassis Design
 
+<img src="images/buggy_design.png" width="300">
+<img src="images/chassis_design.png" width="200">
 
-The final buggy integrates the microcontroller, motor driver, sensor PCB, and power system into a compact two-level chassis.
+The chassis structure was redesigned during the project to improve stability and component placement.
 
----
+Early prototypes suffered from vibration and poor wheel alignment. The final design introduced:
 
-# System Architecture
+- a **single central caster wheel**
+- a **larger and more stable chassis layout**
+- improved mounting for the battery and electronics
 
-<img src="images/software_design.png" width="600">
+This redesign reduced mechanical instability and improved steering reliability.
 
-The system consists of four main subsystems:
+## Motor System and Speed Characterisation
 
-- Mechanical structure
-- Sensor electronics
-- Motor control system
-- Embedded software
+The motor system drives the buggy using two independently controlled wheels.
 
-Each subsystem was designed and iteratively improved during the project.
+Motor testing and characterisation were conducted to determine appropriate speed ranges and gear ratios. Wheel encoders were used to measure rotational speed and enable speed feedback.
 
----
+<img src="images/pwm_control.jpg" width="300">
 
-# Mechanical Design
+Motor speed is controlled using PWM signals. A base speed variable allows the system to adjust the buggy’s velocity depending on track conditions such as slopes.
 
-<img src="images/chassis_design.png" width="500">
+## Sensor Testing and Selection
 
-The chassis structure was redesigned during development to improve stability and component placement.
+To enable reliable line detection, different infrared reflectance sensors were evaluated before selecting the final sensing solution.
 
-Key improvements:
+Several factors were considered during the selection process:
 
-- Replaced dual caster wheels with a **single supported caster wheel**
-- Increased chassis size to accommodate electronics
-- Improved mounting of the battery pack
-- Reduced vibration affecting steering performance
+- detection reliability on different surfaces
+- response time
+- sensitivity to height variation
+- ease of integration with the microcontroller
 
-The redesigned chassis significantly improved reliability and maneuverability.
+Different sensor configurations were tested by varying the **distance between the sensor and the track surface**. The tests showed that detection performance changed significantly with height: when the sensor was too far from the surface, the reflected signal became weak and unstable, while placing the sensor too close increased noise and reduced detection consistency.
 
----
+After comparing multiple options, the **TCRT5000 infrared reflectance sensor** was selected due to its:
 
-# Electronics
-
-## Sensor PCB
-
-<img src="images/pcb_schematic_sensor.png" width="400">
-<img src="images/pcb_layout_sensor.png" width="400">
-
-The custom PCB contains **five infrared reflectance sensors** arranged in a semicircle to detect the line.
+- strong reflectance contrast between black track and white line
+- stable performance across moderate height variations
+- simple interface with digital circuitry
 
 <img src="images/TCRT5000.jpg" width="300">
 
-Features:
-
-- TCRT5000 line sensors
-- Darlington array switching for sensor control
-- Optimised spacing for detecting track curvature
-- Interface with the microcontroller for real-time readings
-
-This configuration allows the buggy to detect deviations from the track and adjust its direction accordingly.
+Multiple sensors were then arranged in different layouts and tested while the buggy navigated curves. The final configuration used **five sensors arranged in a semicircular pattern**, allowing inner sensors to detect turns before outer sensors and providing earlier feedback to the control system.
 
 ---
 
-# Control System
+## Sensor PCB Design
 
-The control system determines motor speed based on sensor readings.
+<img src="images/pcb_schematic_sensor.png" width="300">
+<img src="images/pcb_layout_sensor.png" width="400">
 
-Initially, a **PID controller** was considered due to its smooth response and precise error correction. However, due to time constraints and tuning complexity, the system was implemented using a **bang-bang control strategy**.
+After selecting the sensors, a custom PCB was designed to integrate the sensing system.
 
-Bang-bang control adjusts motor PWM duty cycles depending on which sensor detects the line.
+The PCB includes:
 
-<img src="images/pwm_control.jpg" width="500">
+- five infrared sensors
+- signal conditioning resistors
+- a Darlington transistor array used to switch sensor groups
+- connectors for interfacing with the microcontroller
 
-This method provides:
+The switching circuitry allows different sensor groups to be activated when needed, which was originally intended to reduce power consumption. However, during testing this feature was used less frequently than expected because the track length was relatively short.
 
-- fast response
-- simple implementation
-- reliable performance for the track environment
-
----
-
-# Software Implementation
-
-<img src="images/software_design.png" width="600">
-
-The embedded software was implemented using **Keil Mbed (C++)**.
-
-Main software components:
-
-### Hardware Initialisation
-
-- GPIO configuration
-- motor PWM setup
-- sensor input configuration
-
-### Sensor Processing
-
-Sensor values are converted into digital readings to determine whether the buggy is on or off the track.
-
-### Speed Control
-
-Wheel encoders are used to calculate wheel speed and adjust the base motor speed.
-
-### Direction Control
-
-Motor speeds are modified based on which sensors detect the track.
-
-### Stopping Logic
-
-When all sensors detect the background (track end), a timer determines when the buggy should stop.
-
-### Bluetooth Command
-
-A Bluetooth command triggers the **180° rotation maneuver**.
+The final PCB provided reliable sensor readings and simplified wiring between the sensing system and the microcontroller.
 
 ---
 
-# Testing and Results
+# Software
 
-<img src="images/buggy_design.png" width="500">
+The embedded software was implemented in **C++ using the Keil Mbed framework**.
+It coordinates sensor processing, motor control, speed regulation, and communication between system components.
 
-Extensive testing was performed to improve the buggy's performance.
+The program runs as a continuous control loop that reads sensor inputs, determines the buggy’s position relative to the track, and updates the motor outputs accordingly. Additional modules handle speed estimation, Bluetooth commands, and system status monitoring.
 
-Testing stages included:
+## Software Architecture
 
-- Motor characterisation
-- Sensor calibration
-- Line-following experiments
-- Speed control testing
-- Track performance validation
+The software initialises all hardware components including the line sensors, motor drivers, encoders, and communication interfaces. After initialisation, the program runs a main control loop that continuously processes sensor data and updates the system state.
 
-The buggy was eventually able to:
+The software architecture is organised around several functional modules that interact with hardware peripherals and control the buggy’s behaviour.
 
-- follow the track autonomously
-- navigate turns
-- climb and descend slopes
-- complete the full course
+The system receives input from multiple sensors:
 
-Despite some oscillations and speed instability, the final system successfully achieved the main project goal.
+- **line sensors** detect the position of the white track
+- **wheel speed sensors (encoders)** measure motor speed
+- **battery monitoring** tracks the remaining battery level
+- **Bluetooth communication** allows remote commands
 
-The final project demonstrated a working autonomous navigation system integrating hardware and software components. :contentReference[oaicite:0]{index=0}
+These inputs are processed by the microcontroller to determine the buggy’s current state and compute the required motor actions.
+
+The main outputs of the system include:
+
+- adjusting **left and right motor speeds**
+- executing **turning values**
+- displaying information on the **LCD screen**
+
+Together, these components allow the buggy to maintain its position on the line while adapting to changes in speed and track geometry.
+
+<img src="images/software_design.png" width="400">
+<img src="images/use_case_diagram.png" width="350">
+
+## Control and System Functions
+
+The core functionality of the software is to keep the buggy centred on the white line while maintaining a stable speed.
+
+### Line Position Detection
+
+The five infrared sensors continuously detect whether the buggy is positioned over the line or the background surface. Their readings are converted into simplified digital values which indicate the buggy’s relative position to the track.
+
+Using this information, the software determines whether the buggy should continue straight, turn left, or turn right.
+
+### Motor Control and Steering
+
+The buggy uses a **bang-bang control strategy** to adjust its direction.
+
+When a sensor on one side detects the line, the software changes the PWM duty cycles of the left and right motors to steer the buggy back towards the centre of the track. This allows the vehicle to continuously correct its trajectory and stay aligned with the line.
+
+Although a PID controller was initially considered, tuning the parameters proved difficult within the project timeline. The bang-bang method provided a simpler and more reliable solution.
+
+### Speed Regulation
+
+Wheel encoders measure the rotational speed of each wheel.
+A periodic software routine reads the encoder pulses and calculates the current speed using the sampling interval and wheel circumference.
+
+The system maintains a **base speed variable**, which is dynamically adjusted depending on the measured velocity. This helps the buggy maintain stable motion and adapt when climbing or descending slopes.
+
+### Bluetooth Commands
+
+Bluetooth communication allows external commands to be sent to the buggy.
+
+A specific command triggers the **180° turning manoeuvre** required during the final demonstration. Once the command is received, the buggy temporarily exits the line-following routine, performs the turn, and then resumes normal operation.
+
+A state variable ensures that the command is executed only once.
+
+### Battery Monitoring and Display
+
+The system also includes battery monitoring functionality.
+Battery status information can be displayed on the onboard LCD screen, allowing users to monitor the remaining power during operation.
+
+This feature helps ensure that the buggy maintains sufficient power to complete the track.
 
 ---
 
-# Project Structure
+
+
+# Integration and Results
+
+After individual subsystems were validated, the complete system was integrated step by step.
+
+Integration included:
+
+- sensor detection with motor control
+- speed control with encoder feedback
+- control algorithm implementation
+- Bluetooth command integration
+
+Testing was performed iteratively, modifying one parameter at a time to improve reliability and stability.
+
+The final buggy successfully demonstrated:
+
+- autonomous line following
+- turning on curved tracks
+- climbing and descending slopes
+- executing a 180° turn via Bluetooth
+- completing the full track
+
+Although the motion showed some oscillations at higher speeds, the system achieved the primary goal of autonomous navigation.
+
+---
+
+# Future Improvements
+
+Potential improvements for future versions include:
+
+- implementing a tuned PID controller
+- improving software modularity
+- increasing maximum speed while maintaining stability
+- optimizing buggy integration and improving physical stability
